@@ -48,14 +48,15 @@ public class SandTetris : MonoBehaviour
         new int[,] { {1,1,0}, {0,1,1} }  // Z
     };
 
+// 调整后的颜色，将最大亮度从255降低到180-200，使颜色更柔和，更像像素游戏风格。
     private readonly Color32[] colors = { 
-        new Color32(0, 255, 255, 255), // Cyan
-        new Color32(0, 0, 255, 255),   // Blue
-        new Color32(255, 127, 0, 255), // Orange
-        new Color32(255, 255, 0, 255), // Yellow
-        new Color32(0, 255, 0, 255),   // Green
-        new Color32(255, 0, 255, 255), // Magenta
-        new Color32(255, 0, 0, 255)    // Red
+        new Color32(0, 180, 180, 255),   // Cyan (青色)
+        new Color32(50, 70, 180, 255),   // Blue (深蓝)
+        new Color32(200, 100, 0, 255),   // Orange (橘色)
+        new Color32(180, 180, 50, 255),  // Yellow (土黄)
+        new Color32(50, 180, 50, 255),   // Green (草绿)
+        new Color32(180, 50, 180, 255),  // Magenta (紫红)
+        new Color32(180, 50, 50, 255)    // Red (砖红)
     };
 
     private Color32 colorBlack = new Color32(0, 0, 0, 255);
@@ -127,17 +128,31 @@ public class SandTetris : MonoBehaviour
         }
     }
 
-    void HardDrop()
+void HardDrop()
+{
+    int finalY = piecePixelY;
+    // 1. 以逻辑步长（pieceScale）快速向下搜索，找到能落下的最远位置
+    // 这么做是高性能的关键，避免了一个像素一个像素的检测。
+    while (IsValidPosition(piecePixelX, finalY - pieceScale, currentPiece))
     {
-        // 循环下落直到无法移动
-        while (Move(0, -1)) { } 
-        // 这里用 -1 而不是 -pieceScale 是为了让它紧贴地面，不会悬空
-        
-        SolidifyPiece();
-        CheckLines();
-        SpawnPiece();
-        timer = 0;
+        finalY -= pieceScale;
     }
+    // 2. 找到最底部的贴合位置：以 1 像素为步长微调，确保方块和沙子紧密贴合。
+    // 这能防止方块悬空在沙堆上方。
+    while (IsValidPosition(piecePixelX, finalY - 1, currentPiece))
+    {
+        finalY -= 1;
+    }
+
+    // 3. 瞬间移动到最终位置
+    piecePixelY = finalY;
+    
+    // 4. 固定并生成新方块
+    SolidifyPiece();
+    CheckLines();
+    SpawnPiece();
+    timer = 0;
+}
 
     void SpawnPiece()
     {
